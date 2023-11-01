@@ -1,28 +1,31 @@
 import streamlit as st
-import yfinance as fn
-import datetime as dt
+import requests
+import pandas as pd
+import matplotlib.pyplot as plt
 
-st.write(""" # Yahoo Finance App with *Streamlit*""")
+# import datetime as dt
+
+# create request header
+headers = {'User-Agent': "jinhuang922@address.com"}
+
+st.write(""" # Finance App by Calling SEC EDGAR API""")
 
 st.title("Stock Market Info")
 
-# st.header("Data Science Web App")
+st.header("Data Science Web App")
 st.sidebar.header("Jin Huang \n Finance Web App ...")
 
+
 # get ticker input from user
-ticker_list = ['Select a stock']
+ticker_list = ['Select a top 10 American company by market cap',
+               'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'BRK-B', 'TSLA', 'LLY', 'V']
 
-ticker_input = st.text_input(
-    "Enter tickers seperated by comma. No space.", "e.g., AMZN,TSLA,AAPL")
-individual_ticker = ticker_input.split(",")
-
-if individual_ticker[0] != 'e.g.':
-    for ind in individual_ticker:
-        ticker_list.append(ind)
+cik_dict = {"AAPL": "320193", "MSFT": "789019", "GOOGL": "1652044", "AMZN": "1018724", "NVDA": "1045810",
+            "META": "1326801", "BRK-B": "1067983", 'TSLA': "1318605", 'LLY': "59478", 'V': "1403161"}
 
 ticker = st.selectbox('Select a stock', ticker_list)
 
-if ticker != "Select a stock":
+if ticker != "Select a top 10 American company by market cap":
     # Markdown and confirmation
     html_str = f"""
     <style>
@@ -33,57 +36,45 @@ if ticker != "Select a stock":
     <p class="a">{ticker}</p>
     """
     st.markdown(html_str, unsafe_allow_html=True)
-    stock = fn.Ticker(ticker)
+    stock = ticker
+    cik_str = ""
 
-    # output current market price of the ticker:
-    st.write("Regular Market Previous Close: ",
-             stock.info["regularMarketPreviousClose"])
-    st.write("Regular Market Open: ", stock.info["regularMarketOpen"])
-    st.write("Regular Market Day Low: ", stock.info["regularMarketDayLow"])
-    st.write("Regular Market Day Hight: ", stock.info["regularMarketDayHigh"])
-    st.write("Regular Market Volume: ", stock.info["regularMarketVolume"])
+    # get the raw cik str
+    for key in cik_dict:
+        if key == stock:
+            cik_str += cik_dict[key]
+    st.write(cik_str)
 
-    # select different info sections
-    category_list = ["Select a category ", "Company Business Summary", "Key Financial Metrics", "Full Company Info",
-                     "Historical Data", "Historical Data Chart"]
-    category = st.selectbox("Select a category ", category_list)
+    # add leading 0s
+    cik_str = cik_str.zfill(10)
+    st.write(cik_str)
 
-    if category == "Company Business Summary":
-        st.write("Country: ", stock.info["country"])
-        st.write("Industry: ", stock.info["industryKey"])
-        st.write("Sector: ", stock.info["sectorKey"])
-        st.write("Business summary: ", stock.info["longBusinessSummary"])
+    data_category_list = ["Select a category ", "Company 10-Q data"]
+    data_category = st.selectbox("Select a category ", data_category_list)
+    # get company filing metadata
+    # get company facts data
 
-    elif category == "Key Financial Metrics":
-        st.write("Trailing earnings per share: ", stock.info["trailingEps"])
-        st.write("Forward earnings per share: ", stock.info["forwardEps"])
-        st.write("Price-to-Book Ratio: ", stock.info["priceToBook"])
-        st.write("Debt-to-Equity Ratio: ", stock.info["debtToEquity"])
-        st.write("Free Cash Flow: ", stock.info["freeCashflow"])
-        st.write("PEG Ratio: ", stock.info["pegRatio"])
-        st.write("Return-on-Equity Ratio: ", stock.info["returnOnEquity"])
-        st.write("Operating margin: ", stock.info["operatingMargins"])
+    if data_category == "Company 10-Q data":
+        # get company concept data
+        companyConcept = requests.get(
+            (
+                f'https://data.sec.gov/api/xbrl/companyconcept/CIK{cik_str}'
+                f'/us-gaap/Assets.json'
+            ),
+            headers=headers
+        )
 
-    elif category == "Full Company Info":
-        # output company info
-        st.write(stock.info)
-        print(stock.info)
+        # get filings data
+        assetsData = pd.DataFrame.from_dict(
+            (companyConcept.json()['units']['USD']))
 
-    elif category == "Historical Data":
-        # ask user input for start date and end date
-        start = st.date_input("Specify a start date ")
-        end = st.date_input("Specify an end date ")
+        # get assets from 10Q forms and reset index
+        assets10Q = assetsData[assetsData.form == '10-Q']
+        assets10Q = assets10Q.reset_index(drop=True)
 
-        # fetch dataframe within the range
-        finance_data = fn.download(
-            ticker, start, end)
+        # display the 10Q dataframe
+        st.dataframe(assets10Q)
 
-        st.write(finance_data)
-
-    elif category == "Historical Data Chart":
-
-        # fecth historical data by valid periods
-        hist_data = stock.history(period="6mo")
-
-        # History Chart
-        st.line_chart(hist_data)
+        # diplay the 10Q pyplot graph
+        assets10Q.plot(x='end', y='val')
+        st.pyplot(plt.gcf())
