@@ -5,16 +5,33 @@ import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# import OpenAI package 
+import openai
+openai.api_key = "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"
+model_engine = "text-davinci-003"
 
-# create request header
+# create request header to call SEC API
 headers = {'User-Agent': "jinhuang922@address.com"}
 
 st.title("The Financial Health of Top 10 American Companies by Market Cap")
 st.write(""" # Information Source: The SEC EDGAR API""")
 
 #st.header("Data Science Web App")
-st.sidebar.header("Dig Into the Top 10 U.S. Companies \n Navigate the App by Simple Clicking")
+st.sidebar.header("Dig Into the Top 10 U.S. Companies \n Navigate the app by clicking; Get explanations by asking a chatbot")
+title=st.sidebar.text_input("Hi, I am a chatbot powered by OpenAI. I can help you learn financial information presented on this web app. Ask me any question. For example, what does financial health mean for a company? What does a company\'s 10-K data mean?")
+if len(title) != 0:
+    st.sidebar.write("Your question is: ", title)
+    prompt = title 
 
+    # prompt="List the top ten United States companies by market cap"
+    completion = openai.Completion.create(
+        engine=model_engine,
+        prompt=prompt,
+        max_tokens=1024,
+        temperature=0.6,
+    )
+    response = completion.choices[0].text 
+    st.sidebar.write(response)
 
 # get ticker input from user
 ticker_list = ['Select a top 10 American company by market cap',
@@ -37,8 +54,9 @@ if ticker != "Select a top 10 American company by market cap":
     """
     st.markdown(html_str, unsafe_allow_html=True)
     st.write("What financial information do you want to review?")
-    st.write("Category 1: SEC Form 10-Q. It is a comprehensive report of financial performance that must be submitted quarterly by all public companies to the SEC. In the 10-Q, firms are required to disclose relevant information regarding their finances as a result of their business operations. The 10-Q is generally an unaudited report.--Investopedia")
-    st.write("Select the Company 10-Q data if you want to review the metada of a company's 10-Q data in the past 10 year or more and see a visual representation of how the company's asset value changed in the past 10 years or more.")
+    st.write("Category 1: 10-K Assets.Category 2: 10-K Revenues.")
+    # st.write("Select the Company 10-K data if you want to review the metada of a company's 10-K data in the past 10 year or more and see a visual representation of how the company's asset value changed in the past 10 years or more.")
+
     stock = ticker
     cik_str = ""
 
@@ -52,13 +70,13 @@ if ticker != "Select a top 10 American company by market cap":
     cik_str = cik_str.zfill(10)
     #st.write(cik_str)
 
-    data_category_list = ["Select a category ", "Company 10-Q data"]
+    data_category_list = ["Select a category ", "10-K Assets", "10-K Revenues"]
     data_category = st.selectbox("Click on the dropdown menue. Select an information category ", data_category_list)
     # get company filing metadata
     # get company facts data
 
-    if data_category == "Company 10-Q data":
-        # get company concept data
+    if data_category == "10-K Assets":
+        # get company concept/Assets data
         companyConcept = requests.get(
             (
                 f'https://data.sec.gov/api/xbrl/companyconcept/CIK{cik_str}'
@@ -71,13 +89,44 @@ if ticker != "Select a top 10 American company by market cap":
         assetsData = pd.DataFrame.from_dict(
             (companyConcept.json()['units']['USD']))
 
-        # get assets from 10Q forms and reset index
-        assets10Q = assetsData[assetsData.form == '10-Q']
-        assets10Q = assets10Q.reset_index(drop=True)
+        # get assets from 10K forms and reset index
+        assets10K = assetsData[assetsData.form == '10-K']
+        assets10K = assets10K.reset_index(drop=True)
 
-        # display the 10Q dataframe
-        st.dataframe(assets10Q)
+        # display the 10K dataframe
+        st.dataframe(assets10K)
 
-        # diplay the 10Q pyplot graph
-        assets10Q.plot(x='end', y='val')
+        # diplay the 10K pyplot graph
+        assetsPlot = assets10K.plot(x='end', y='val', title='Assets Reported in 10-K')
+        assetsPlot.set_xlabel("Report Date")
+        assetsPlot.set_ylabel("Assets")
+
+        st.pyplot(plt.gcf())
+    
+    elif data_category == "10-K Revenues":
+        # get company concept/Assets data
+        companyConcept = requests.get(
+            (
+                f'https://data.sec.gov/api/xbrl/companyconcept/CIK{cik_str}'
+                f'/us-gaap/Revenues.json'
+            ),
+            headers=headers
+        )
+
+        # get filings data
+        revenuesData = pd.DataFrame.from_dict(
+            (companyConcept.json()['units']['USD']))
+
+        # get assets from 10K forms and reset index
+        revenues10K = revenuesData[revenuesData.form == '10-K']
+        revenues10K = revenues10K.reset_index(drop=True)
+
+        # display the 10K dataframe
+        st.dataframe(revenues10K)
+
+        # diplay the 10K pyplot graph
+        revenuesPlot = revenues10K.plot(x='end', y='val', title='Revenues Reported in 10-K')
+        revenuesPlot.set_xlabel("Report Date")
+        revenuesPlot.set_ylabel("Revenues")
+
         st.pyplot(plt.gcf())
