@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 
 # import OpenAI package 
 import openai
-openai.api_key = "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"
+openai.api_key = ""
 model_engine = "text-davinci-003"
 
 # create request header to call SEC API
-headers = {'User-Agent': "jinhuang922@address.com"}
+headers = {'User-Agent': ""}
 
 st.title("The Financial Health of Top 10 American Companies by Market Cap")
 st.write(""" # Information Source: The SEC EDGAR API""")
