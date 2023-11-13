@@ -104,14 +104,25 @@ if ticker != "Select a top 10 American company by market cap":
         st.pyplot(plt.gcf())
     
     elif data_category == "10-K Revenues":
-        # get company concept/Assets data
-        companyConcept = requests.get(
-            (
-                f'https://data.sec.gov/api/xbrl/companyconcept/CIK{cik_str}'
-                f'/us-gaap/Revenues.json'
-            ),
-            headers=headers
-        )
+        if stock == "AMZN":
+            # get company concept/Assets data
+            companyConcept = requests.get(
+                (
+                    f'https://data.sec.gov/api/xbrl/companyconcept/CIK{cik_str}'
+                    f'/us-gaap/SalesRevenueNet.json'
+                ),
+                headers=headers
+            )
+            
+        else:
+            # get company concept/Assets data
+            companyConcept = requests.get(
+                (
+                    f'https://data.sec.gov/api/xbrl/companyconcept/CIK{cik_str}'
+                    f'/us-gaap/Revenues.json'
+                ),
+                headers=headers
+            )
 
         # get filings data
         revenuesData = pd.DataFrame.from_dict(
