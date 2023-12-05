@@ -1,4 +1,5 @@
 # Stock Galaxy, Pick a Star
+
 - Built a full-stack web app to retrieve 10 key financial metrics from the 10-K data of all 10726 SEC-listed companies using the SEC EDGAR API
 - Used pandas DataFrame and Python dictionary data structures, and sorting algorithms to sort and rank stocks based on various financial metrics
 - Integrated a chatbot, powered by OpenAI, into the web app to answer user questions
